@@ -71,6 +71,8 @@ class Bird(pg.sprite.Sprite):
         self.image = self.imgs[self.dire]
         self.rect = self.image.get_rect()
         self.rect.center = xy
+        self.hyper_life=500
+        self.state="normal"
 
     def change_img(self, num: int, screen: pg.Surface):
         """
@@ -103,7 +105,16 @@ class Bird(pg.sprite.Sprite):
         if not (sum_mv[0] == 0 and sum_mv[1] == 0):
             self.dire = tuple(sum_mv)
             self.image = self.imgs[self.dire]
-        screen.blit(self.image, self.rect)
+       
+        if self.state=="hyper":
+            self.image = pg.transform.laplacian(self.image)
+            self.hyper_life-=1
+        if self.hyper_life<0:
+            self.state="normal"
+            self.hyper_life=500
+        screen.blit(self.image, self.rect)    
+    def muteki(self):
+        self.state="hyper"
 
 
 class Bomb(pg.sprite.Sprite):
@@ -228,6 +239,8 @@ class Enemy(pg.sprite.Sprite):
         self.rect.move_ip(self.vx, self.vy)
 
 
+
+
 class Score:
     """
     打ち落とした爆弾，敵機の数をスコアとして表示するクラス
@@ -321,6 +334,13 @@ def main():
                     emps.add(emp)
                     
 
+            #---無敵時間発動条件--- 
+            if event.type == pg.KEYDOWN and event.key == pg.K_RSHIFT:
+                if score.value>=100:
+                    score.value-=100
+                    bird.muteki()
+            #---------------------
+
         screen.blit(bg_img, [0, 0])
             
 
@@ -345,12 +365,15 @@ def main():
             if bomb.state == "inactive":  # 爆弾のstateがinactiveならゲーム続行
                 pg.sprite.spritecollide(bird, bombs, True)
             else:
-                bird.change_img(8, screen)  # こうかとん悲しみエフェクト
-                score.update(screen)
-                pg.display.update()
-                time.sleep(2)
-                return
-                
+                if bird.state=="normal":#無敵時間じゃなかったら
+                    bird.change_img(8, screen)  # こうかとん悲しみエフェクト
+                    score.update(screen)
+                    pg.display.update()
+                    time.sleep(2)
+                    return
+                exps.add(Explosion(bomb, 50))#無敵時間中だったら爆弾が爆発
+            score.value += 1  # 1点アップ
+
         
         #追加機能２
         if key_lst[pg.K_RETURN] and score.value >= 200:
@@ -379,6 +402,7 @@ def main():
         emps.update()
         emps.draw(screen)
         score.update(screen)
+    
         pg.display.update()
         tmr += 1
         clock.tick(50)
