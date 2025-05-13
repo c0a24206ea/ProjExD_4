@@ -222,6 +222,32 @@ class Enemy(pg.sprite.Sprite):
             self.state = "stop"
         self.rect.move_ip(self.vx, self.vy)
 
+    
+class Shield(pg.sprite.Sprite):
+    """
+    防護壁に関するクラス
+    """
+    def __init__(self, bird: Bird, life: int):
+        super().__init__()
+        self.life = life
+        w, h = 20, bird.rect.height * 2
+        base_image = pg.Surface((w, h), pg.SRCALPHA) 
+        pg.draw.rect(base_image, (0, 0, 255), (0, 0, w, h))
+        vx, vy = bird.dire
+        angle = math.degrees(math.atan2(-vy, vx))
+        self.image = pg.transform.rotozoom(base_image, angle, 1.0)
+        offset = bird.rect.height  # こうかとん1体分
+        cx, cy = bird.rect.center
+        self.rect = self.image.get_rect()
+        self.rect.centerx = cx + vx * offset
+        self.rect.centery = cy + vy * offset
+
+    def update(self):
+        self.life -= 1
+        if self.life < 0:
+            self.kill()
+
+
 
 class Score:
     """
@@ -253,6 +279,7 @@ def main():
     beams = pg.sprite.Group()
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
+    shields = pg.sprite.Group()
 
     tmr = 0
     clock = pg.time.Clock()
@@ -261,8 +288,13 @@ def main():
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return 0
-            if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
-                beams.add(Beam(bird))
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_SPACE:
+                    beams.add(Beam(bird))
+                if event.key == pg.K_s:
+                    if score.value >= 50 and len(shields) == 0:
+                        score.value -= 50
+                        shields.add(Shield(bird, 400))
         screen.blit(bg_img, [0, 0])
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
@@ -282,6 +314,9 @@ def main():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
             score.value += 1  # 1点アップ
 
+        for bomb in pg.sprite.groupcollide(bombs, shields, True, False).keys():
+            exps.add(Explosion(bomb, 50))
+
         for bomb in pg.sprite.spritecollide(bird, bombs, True):  # こうかとんと衝突した爆弾リスト
             bird.change_img(8, screen)  # こうかとん悲しみエフェクト
             score.update(screen)
@@ -298,6 +333,8 @@ def main():
         bombs.draw(screen)
         exps.update()
         exps.draw(screen)
+        shields.update()
+        shields.draw(screen)
         score.update(screen)
         pg.display.update()
         tmr += 1
