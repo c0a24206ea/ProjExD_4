@@ -321,6 +321,8 @@ def main():
             bomb.kill()
     
 
+        gra.update() #追加機能２
+        gra.draw(screen)
         bird.update(key_lst, screen)
         beams.update()
         beams.draw(screen)
@@ -331,8 +333,6 @@ def main():
         exps.update()
         exps.draw(screen)
         score.update(screen)
-        gra.update() #追加機能２
-        gra.draw(screen)
         pg.display.update()
         tmr += 1
         clock.tick(50)
